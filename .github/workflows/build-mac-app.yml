@@ -36,7 +36,7 @@ jobs:
         cp -r dist/export_gmail_addresses.app release/
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4.6.2
       with:
         name: export_gmail_addresses-mac
         path: src/release/export_gmail_addresses.app
