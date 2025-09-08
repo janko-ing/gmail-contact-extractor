@@ -38,4 +38,4 @@ jobs:
       uses: actions/upload-artifact@v4.6.2
       with:
         name: export_gmail_addresses-mac
-        path: src/dist/ExportGmailAddresses-mac.app
+        path: src/dist/ExportGmailAddresses-mac.zip
