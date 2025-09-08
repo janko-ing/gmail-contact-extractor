@@ -1,0 +1,42 @@
+name: Build macOS App
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-macos-app:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      run: |
+        cd src
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build .app using PyInstaller
+      run: |
+        cd src
+        pyinstaller --onefile --windowed export_gmail_addresses.py
+
+    - name: Archive .app
+      run: |
+        cd src
+        mkdir -p release
+        cp -r dist/export_gmail_addresses.app release/
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: export_gmail_addresses-mac
+        path: src/release/export_gmail_addresses.app
