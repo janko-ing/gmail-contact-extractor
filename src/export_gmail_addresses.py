@@ -39,24 +39,63 @@ def extract_name_email(headers):
 def fetch_batch(service, query):
     records = set()
     page_token = None
+    quota_used = 0
+    start_time = time.time()
+    
     while True:
+        # Check if we need to wait to respect rate limits
+        if quota_used >= 14000:  # Leave some buffer
+            elapsed = time.time() - start_time
+            if elapsed < 60:  # If less than a minute has passed
+                wait_time = 60 - elapsed + 1  # Wait until next minute + 1 sec buffer
+                print(f"Rate limit approaching, waiting {wait_time:.1f} seconds...")
+                time.sleep(wait_time)
+                quota_used = 0
+                start_time = time.time()
+        
+        # Fetch message list (5 quota units)
         results = service.users().messages().list(
-            userId='me', q=query, maxResults=500, pageToken=page_token
+            userId='me', q=query, maxResults=100, pageToken=page_token
         ).execute()
+        quota_used += 5
+        
         messages = results.get('messages', [])
-        for msg in messages:
-            msg_data = service.users().messages().get(
-                userId='me', id=msg['id'], format='metadata',
-                metadataHeaders=['From','To','Cc','Bcc']
-            ).execute()
-            headers = msg_data['payload']['headers']
-            for name, email in extract_name_email(headers):
-                if email:
-                    records.add((name.strip(), email.strip().lower()))
+        
+        # Process messages in smaller batches to avoid hitting limits
+        batch_size = min(50, (14000 - quota_used) // 5)  # Reserve quota for message.get calls
+        
+        for i in range(0, len(messages), batch_size):
+            batch_messages = messages[i:i + batch_size]
+            
+            for msg in batch_messages:
+                # Check quota before each message.get call
+                if quota_used >= 14000:
+                    elapsed = time.time() - start_time
+                    if elapsed < 60:
+                        wait_time = 60 - elapsed + 1
+                        print(f"Rate limit approaching, waiting {wait_time:.1f} seconds...")
+                        time.sleep(wait_time)
+                        quota_used = 0
+                        start_time = time.time()
+                
+                msg_data = service.users().messages().get(
+                    userId='me', id=msg['id'], format='metadata',
+                    metadataHeaders=['From','To','Cc','Bcc']
+                ).execute()
+                quota_used += 5
+                
+                headers = msg_data['payload']['headers']
+                for name, email in extract_name_email(headers):
+                    if email:
+                        records.add((name.strip(), email.strip().lower()))
+            
+            # Small delay between batches to be gentle on the API
+            time.sleep(0.2)
+        
         page_token = results.get('nextPageToken')
         if not page_token:
             break
-        time.sleep(0.1)
+    
     return records
 
 # --------------------- GUI ---------------------
