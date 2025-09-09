@@ -27,15 +27,16 @@ jobs:
     - name: Build .app using PyInstaller
       run: |
         cd src
-        pyinstaller --windowed --name "ExportGmailAddresses" export_gmail_addresses.py
+        pyinstaller --onefile --windowed export_gmail_addresses.py
 
-    - name: Package .app into zip
+    - name: Archive .app
       run: |
-        cd src/dist
-        zip -r ExportGmailAddresses-mac.zip ExportGmailAddresses.app
+        cd src
+        mkdir -p release
+        cp -r dist/export_gmail_addresses.app release/
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4.6.2
       with:
         name: export_gmail_addresses-mac
-        path: src/dist/ExportGmailAddresses-mac.zip
+        path: src/release/export_gmail_addresses.app
