@@ -62,7 +62,7 @@ def fetch_batch(service, query):
         messages = results.get('messages', [])
         
         # Process messages in smaller batches to avoid hitting limits
-        batch_size = min(50, (14000 - quota_used) // 5)  # Reserve quota for message.get calls
+        batch_size = max(5, min(50, (14000 - quota_used) // 5))  # Ensure batch_size is at least 5
         
         for i in range(0, len(messages), batch_size):
             batch_messages = messages[i:i + batch_size]
